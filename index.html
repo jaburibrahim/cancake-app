@@ -311,95 +311,78 @@ function getFilteredSortedOrders(){
   return list;
 }
 
-/* ============ Storage (Google Sheet backend via Apps Script, page hosted on GitHub Pages) ============ */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzBdCQxYWcSRksDOVvm_buaJ5N74SMAzKDtN2qnUQQ1-eGsSOMomOTBFfvT9k5kwlZVCw/exec';
+/* ============ Storage (GitHub Contents API — JSON file in the same repo, no Google involved) ============ */
+const GITHUB_OWNER='jaburibrahim';
+const GITHUB_REPO='cancake-app';
+const GITHUB_PATH='data.json';
+// بعد ما تسوي التوكن (راجع تعليمات التركيب)، الصقه هنا بين القوسين:
+const GITHUB_TOKEN='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';
+const GH_API=`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}`;
 
-function isScriptConfigured(){
-  return !!SCRIPT_URL && SCRIPT_URL.indexOf('http')===0;
+let currentSha=null;
+
+function isGithubConfigured(){
+  return !!GITHUB_TOKEN && GITHUB_TOKEN.indexOf('PASTE_')===-1;
 }
-function fetchTransport(url){
-  return new Promise(function(resolve,reject){
-    const controller=(typeof AbortController!=='undefined')?new AbortController():null;
-    const timer=setTimeout(function(){ if(controller) controller.abort(); reject(new Error('fetch: انتهت المهلة')); },8000);
-    fetch(url,controller?{signal:controller.signal}:{})
-      .then(function(res){ clearTimeout(timer); return res.json(); })
-      .then(function(data){ resolve(data); })
-      .catch(function(err){ clearTimeout(timer); reject(new Error('fetch: '+(err&&err.message?err.message:'فشل غير معروف'))); });
+function utf8ToB64(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64ToUtf8(b64){
+  return decodeURIComponent(escape(atob(b64.replace(/\n/g,''))));
+}
+async function ghRead(){
+  const res=await fetch(GH_API,{headers:{'Authorization':'Bearer '+GITHUB_TOKEN}});
+  if(res.status===404){ currentSha=null; return {shopName:'CanCake',orders:[]}; }
+  if(!res.ok) throw new Error('قراءة گيتهاب فشلت (كود '+res.status+')');
+  const data=await res.json();
+  currentSha=data.sha;
+  try{ return JSON.parse(b64ToUtf8(data.content)); }
+  catch(e){ return {shopName:'CanCake',orders:[]}; }
+}
+async function ghWriteRaw(obj){
+  const body={
+    message:'تحديث بيانات CanCake — '+new Date().toISOString(),
+    content:utf8ToB64(JSON.stringify(obj,null,2)),
+  };
+  if(currentSha) body.sha=currentSha;
+  const res=await fetch(GH_API,{
+    method:'PUT',
+    headers:{'Authorization':'Bearer '+GITHUB_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify(body)
   });
+  if(res.status===409){ const err=new Error('تعارض تحديث'); err.isConflict=true; throw err; }
+  if(!res.ok) throw new Error('حفظ گيتهاب فشل (كود '+res.status+')');
+  const data=await res.json();
+  currentSha=data.content.sha;
 }
-function jsonpTransport(url){
-  return new Promise(function(resolve,reject){
-    const cbName='cancakeCb'+Date.now()+Math.floor(Math.random()*100000);
-    const script=document.createElement('script');
-    let settled=false;
-    const cleanup=function(){
-      delete window[cbName];
-      if(script.parentNode) script.parentNode.removeChild(script);
-      clearTimeout(timer);
-    };
-    const timer=setTimeout(function(){
-      if(settled) return;
-      settled=true;
-      cleanup();
-      reject(new Error('jsonp: انتهت المهلة'));
-    },8000);
-    window[cbName]=function(data){
-      if(settled) return;
-      settled=true;
-      cleanup();
-      resolve(data);
-    };
-    script.onerror=function(){
-      if(settled) return;
-      settled=true;
-      cleanup();
-      reject(new Error('jsonp: فشل تحميل السكربت'));
-    };
-    script.src=url+(url.indexOf('?')>-1?'&':'?')+'callback='+cbName;
-    document.body.appendChild(script);
-  });
-}
-// يجرب fetch أول (أسرع وأنظف)، وإذا فشل يجرب JSONP تلقائيًا بدون تدخل — وبعدها يتذكر
-// أي طريقة نجحت ويستخدمها مباشرة بالمرات الجاية بنفس الجلسة (تسريع، بلا تجربة فاشلة كل مرة).
-let workingTransport=null;
-async function request(url){
-  if(workingTransport==='fetch'){
-    try{ return await fetchTransport(url); }catch(e){ workingTransport=null; }
+// يقرأ أحدث نسخة، يطبّق التعديل المطلوب فوقها، ويحفظ — ولو صار تعارض (شخص ثاني حفظ بنفس اللحظة)
+// يعيد القراءة والتطبيق والحفظ من جديد (لين ٣ محاولات) بدل ما يمسح تعديل الشخص الثاني بالغلط.
+async function ghApplyAndSave(applyFn){
+  let lastErr=null;
+  for(let attempt=0;attempt<3;attempt++){
+    const current=await ghRead();
+    const updated=applyFn(current);
+    try{
+      await ghWriteRaw(updated);
+      return updated;
+    }catch(e){
+      lastErr=e;
+      if(!e.isConflict) throw e;
+    }
   }
-  if(workingTransport==='jsonp'){
-    try{ return await jsonpTransport(url); }catch(e){ workingTransport=null; }
-  }
-  let fetchErr=null,jsonpErr=null;
-  try{
-    const result=await fetchTransport(url);
-    workingTransport='fetch';
-    return result;
-  }catch(e){ fetchErr=e; }
-  try{
-    const result=await jsonpTransport(url);
-    workingTransport='jsonp';
-    return result;
-  }catch(e){ jsonpErr=e; }
-  throw new Error((fetchErr?fetchErr.message:'')+' | '+(jsonpErr?jsonpErr.message:''));
-}
-async function apiGet(action){
-  return request(`${SCRIPT_URL}?action=${action}`);
-}
-async function apiPost(action,payload){
-  const encoded=encodeURIComponent(JSON.stringify(payload));
-  return request(`${SCRIPT_URL}?action=${action}&payload=${encoded}`);
+  throw lastErr||new Error('تعذر الحفظ بعد عدة محاولات');
 }
 async function loadData(){
-  if(!isScriptConfigured()){
+  if(!isGithubConfigured()){
     state.loading=false;
-    state.connectionError='هذه الصفحة تحتاج تنفتح من رابط الويب اپ (بعد نشر Apps Script)، مو كملف محلي';
+    state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب';
     render();
     return;
   }
   try{
-    const [ordersRes,settingsRes]=await Promise.all([apiGet('list'),apiGet('settings')]);
-    if(ordersRes&&ordersRes.ok) state.orders=ordersRes.orders||[];
-    if(settingsRes&&settingsRes.ok&&settingsRes.settings&&settingsRes.settings.shopName) state.shopName=settingsRes.settings.shopName;
+    const data=await ghRead();
+    state.orders=data.orders||[];
+    if(data.shopName) state.shopName=data.shopName;
     state.connectionError=null;
   }catch(e){
     state.connectionError='تعذر الاتصال بقاعدة البيانات — '+(e&&e.message?e.message:'خطأ غير معروف');
@@ -409,29 +392,50 @@ async function loadData(){
   startPolling();
 }
 async function persistOrder(order){
+  if(!isGithubConfigured()){ state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب'; render(); return; }
   try{
-    const res=await apiPost('upsertOrder',{order});
-    if(res&&res.ok){ state.orders=res.orders; state.connectionError=null; render(); }
+    const updated=await ghApplyAndSave(function(current){
+      const orders=(current.orders||[]).slice();
+      const idx=orders.findIndex(o=>o.id===order.id);
+      if(idx>-1) orders[idx]=order; else orders.push(order);
+      return {shopName:current.shopName||state.shopName,orders};
+    });
+    state.orders=updated.orders;
+    state.connectionError=null;
+    render();
   }catch(e){ state.connectionError='تعذر حفظ الطلب — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
 }
 async function persistDeleteOrder(id){
+  if(!isGithubConfigured()){ state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب'; render(); return; }
   try{
-    const res=await apiPost('deleteOrder',{id});
-    if(res&&res.ok){ state.orders=res.orders; state.connectionError=null; render(); }
+    const updated=await ghApplyAndSave(function(current){
+      const orders=(current.orders||[]).filter(o=>o.id!==id);
+      return {shopName:current.shopName||state.shopName,orders};
+    });
+    state.orders=updated.orders;
+    state.connectionError=null;
+    render();
   }catch(e){ state.connectionError='تعذر حذف الطلب — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
 }
 async function persistSettings(){
-  try{ await apiPost('saveSettings',{settings:{shopName:state.shopName}}); state.connectionError=null; }
-  catch(e){ state.connectionError='تعذر حفظ الإعدادات — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
+  if(!isGithubConfigured()){ state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب'; render(); return; }
+  try{
+    await ghApplyAndSave(function(current){
+      return {shopName:state.shopName,orders:current.orders||[]};
+    });
+    state.connectionError=null;
+  }catch(e){ state.connectionError='تعذر حفظ الإعدادات — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
 }
 let pollTimer=null;
 function startPolling(){
-  if(pollTimer||!isScriptConfigured()) return;
+  if(pollTimer||!isGithubConfigured()) return;
   pollTimer=setInterval(async function(){
     if(document.hidden||state.formOpen) return;
     try{
-      const res=await apiGet('list');
-      if(res&&res.ok){ state.orders=res.orders; state.connectionError=null; render(); }
+      const data=await ghRead();
+      state.orders=data.orders||[];
+      state.connectionError=null;
+      render();
     }catch(e){ /* ignore transient network errors during background poll */ }
   },20000);
 }
