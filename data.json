@@ -2,19 +2,6 @@
   "shopName": "CanCake",
   "orders": [
     {
-      "id": "mscfnkethklp95",
-      "customerName": "112",
-      "phone": "3123",
-      "orderType": "delivery",
-      "deliveryDate": "2026-08-03",
-      "deliveryArea": "",
-      "items": [],
-      "source": "",
-      "price": null,
-      "notes": "",
-      "createdAt": "2026-08-02T23:30:03.413Z"
-    },
-    {
       "id": "mscftr9y3gd640",
       "customerName": "طلب 1",
       "phone": "07855999900",
