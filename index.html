@@ -318,13 +318,44 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzBdCQxYWcSRksDOVvm_
 function isScriptConfigured(){
   return !!SCRIPT_URL && SCRIPT_URL.indexOf('http')===0;
 }
+function jsonp(url){
+  return new Promise(function(resolve,reject){
+    const cbName='cancakeCb'+Date.now()+Math.floor(Math.random()*100000);
+    const script=document.createElement('script');
+    let settled=false;
+    const cleanup=function(){
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      clearTimeout(timer);
+    };
+    const timer=setTimeout(function(){
+      if(settled) return;
+      settled=true;
+      cleanup();
+      reject(new Error('انتهت مهلة الاتصال'));
+    },15000);
+    window[cbName]=function(data){
+      if(settled) return;
+      settled=true;
+      cleanup();
+      resolve(data);
+    };
+    script.onerror=function(){
+      if(settled) return;
+      settled=true;
+      cleanup();
+      reject(new Error('فشل تحميل البيانات'));
+    };
+    script.src=url+(url.indexOf('?')>-1?'&':'?')+'callback='+cbName;
+    document.body.appendChild(script);
+  });
+}
 async function apiGet(action){
-  const res=await fetch(`${SCRIPT_URL}?action=${action}`);
-  return res.json();
+  return jsonp(`${SCRIPT_URL}?action=${action}`);
 }
 async function apiPost(action,payload){
-  const res=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action,...payload})});
-  return res.json();
+  const encoded=encodeURIComponent(JSON.stringify(payload));
+  return jsonp(`${SCRIPT_URL}?action=${action}&payload=${encoded}`);
 }
 async function loadData(){
   if(!isScriptConfigured()){
