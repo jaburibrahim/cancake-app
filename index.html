@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CanCake · إدارة الطلبات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;600;700;800&family=Readex+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --kraft:#F6ECDD;
+  --paper:#FFFBF5;
+  --espresso:#3D2A24;
+  --velvet:#8C1F3B;
+  --velvet-dark:#6E1830;
+  --pistachio:#7E9962;
+  --pistachio-dark:#66804C;
+  --brass:#C0923E;
+  --brass-dark:#A87A2E;
+  --line:rgba(61,42,36,0.14);
+  --shadow-sm:0 2px 8px rgba(61,42,36,0.08);
+  --shadow-md:0 10px 30px rgba(61,42,36,0.12);
+  --radius-lg:22px;
+  --radius-md:14px;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--kraft);
+  color:var(--espresso);
+  font-family:'Readex Pro',system-ui,sans-serif;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+h1,h2,h3{font-family:'Baloo Bhaijaan 2','Readex Pro',system-ui,sans-serif;margin:0;}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;}
+::placeholder{color:rgba(61,42,36,0.4);}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+:focus-visible{outline:2.5px solid var(--brass);outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important;transition-duration:0.01ms !important;}}
+
+.app-shell{max-width:1080px;margin:0 auto;padding:30px 20px 90px;}
+
+/* ---- Header ---- */
+.shop-header{text-align:center;padding:4px 0 28px;}
+.brand-logo{display:block;margin:0 auto 12px;max-width:230px;width:100%;height:auto;filter:drop-shadow(0 4px 10px rgba(61,42,36,0.22));}
+.shop-title-row{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border-radius:999px;padding:4px 12px;transition:background .15s;}
+.shop-title-row:hover{background:rgba(61,42,36,0.06);}
+.shop-title-row .edit-hint-icon{opacity:0.4;}
+.shop-title{font-size:14.5px;font-weight:600;color:var(--espresso);opacity:0.7;}
+.shop-name-input{font-family:'Readex Pro',sans-serif;font-size:14.5px;font-weight:600;color:var(--espresso);background:var(--paper);border:1.5px solid var(--brass);border-radius:999px;padding:4px 14px;text-align:center;max-width:80vw;}
+.tagline{color:var(--espresso);opacity:0.55;font-size:13px;margin:4px 0 0;}
+.connection-banner{max-width:520px;margin:14px auto 0;background:rgba(140,31,59,0.09);color:var(--velvet-dark);border:1px solid rgba(140,31,59,0.2);border-radius:12px;padding:9px 16px;text-align:center;font-size:12.5px;}
+
+/* ---- Main tabs ---- */
+.main-tabs{display:flex;gap:6px;background:var(--paper);border-radius:999px;padding:5px;width:fit-content;margin:0 auto 24px;box-shadow:var(--shadow-sm);}
+.main-tab-btn{border:none;background:transparent;padding:9px 24px;border-radius:999px;font-size:14px;font-weight:600;color:var(--espresso);opacity:0.55;cursor:pointer;}
+.main-tab-btn.active{background:var(--velvet);color:var(--paper);opacity:1;}
+
+/* ---- Accounts view ---- */
+.month-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:22px;}
+.month-nav-btn{background:var(--paper);border:1.5px solid var(--line);border-radius:50%;width:34px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--espresso);}
+.month-nav-btn:hover{background:rgba(61,42,36,0.06);}
+.month-input{font-family:'Baloo Bhaijaan 2',sans-serif;font-size:18px;font-weight:700;color:var(--velvet);background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:7px 16px;text-align:center;}
+.stat-card.tint-pistachio{background:linear-gradient(180deg,rgba(126,153,98,0.14),var(--paper) 70%);}
+.breakdown-card{background:var(--paper);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);margin-bottom:18px;}
+.breakdown-title{font-size:14.5px;color:var(--velvet);margin-bottom:10px;}
+.breakdown-row{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:8px;overflow:hidden;}
+.breakdown-bar{position:absolute;inset-inline-start:0;top:0;bottom:0;background:rgba(126,153,98,0.16);z-index:0;}
+.breakdown-name{display:flex;align-items:center;gap:7px;font-size:13.5px;position:relative;z-index:1;}
+.breakdown-qty{font-family:'Baloo Bhaijaan 2',sans-serif;font-weight:700;color:var(--velvet);font-size:15px;position:relative;z-index:1;}
+.accounts-table-wrap{overflow-x:auto;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
+.accounts-table{background:var(--paper);min-width:420px;}
+.accounts-row{display:grid;grid-template-columns:82px 1fr 92px 34px;gap:8px;align-items:center;padding:11px 16px;font-size:13px;border-bottom:1px solid var(--line);}
+.accounts-row:last-child{border-bottom:none;}
+.accounts-head{font-weight:700;font-size:11px;opacity:0.55;background:var(--kraft);}
+.accounts-row .num-cell{font-weight:600;}
+.accounts-total-row{font-weight:700;background:rgba(126,153,98,0.09);border-top:2px solid var(--line);}
+@media (max-width:640px){.accounts-row{grid-template-columns:70px 1fr 78px 30px;font-size:12px;padding:9px 12px;}}
+
+/* ---- Stats ---- */
+.stats-row{display:grid;gap:12px;margin-bottom:24px;}
+.stats-row.cols-3{grid-template-columns:repeat(3,1fr);}
+.stats-row.cols-2{grid-template-columns:repeat(2,1fr);}
+.stat-card{background:var(--paper);border-radius:var(--radius-md);padding:16px 12px;text-align:center;box-shadow:var(--shadow-sm);}
+.stat-num{font-family:'Baloo Bhaijaan 2',sans-serif;font-size:27px;font-weight:700;color:var(--velvet);line-height:1.2;}
+.stat-label{font-size:12px;opacity:0.65;margin-top:3px;}
+@media (max-width:420px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+
+/* ---- Toolbar ---- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:24px;}
+.search-wrap{position:relative;flex:1 1 220px;min-width:170px;}
+.search-wrap .s-icon{position:absolute;top:50%;right:14px;transform:translateY(-50%);opacity:0.45;pointer-events:none;}
+.search-input{width:100%;padding:11px 40px 11px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--paper);font-size:14.5px;color:var(--espresso);}
+.filter-select{padding:10px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--paper);font-size:13.5px;color:var(--espresso);}
+.btn-primary{background:var(--velvet);color:var(--paper);border:none;border-radius:999px;padding:11px 20px;font-size:14.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:var(--shadow-sm);white-space:nowrap;}
+.btn-primary:hover{background:var(--velvet-dark);}
+.btn-ghost{background:transparent;color:var(--espresso);border:1.5px solid var(--line);border-radius:999px;padding:10px 16px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn-ghost:hover{background:rgba(61,42,36,0.05);}
+
+/* ---- Orders grid & card (signature: can-label ticket) ---- */
+.orders-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:18px;}
+.order-card{position:relative;background:var(--paper);border-radius:var(--radius-lg);padding:26px 20px 16px;box-shadow:var(--shadow-md);}
+.card-seam{position:absolute;left:16px;right:16px;height:2px;background-image:repeating-linear-gradient(90deg,rgba(61,42,36,0.18) 0 6px,transparent 6px 13px);}
+.card-seam.top{top:12px;}
+.card-seam.bottom{bottom:11px;}
+.urgency-ribbon{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 12px;border-radius:999px;margin:0 0 10px;}
+.urgency-today{background:var(--velvet);color:var(--paper);}
+.urgency-tomorrow{background:var(--brass);color:var(--espresso);}
+.urgency-overdue{background:var(--espresso);color:var(--kraft);}
+.card-name{font-size:19px;font-weight:600;margin:2px 0 5px;}
+.card-phone{display:flex;align-items:center;gap:6px;font-size:13.5px;opacity:0.72;margin-bottom:10px;}
+.card-type-row{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:rgba(61,42,36,0.055);border-radius:8px;padding:5px 10px;margin-bottom:10px;color:var(--espresso);}
+.card-items{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.item-chip{display:inline-flex;align-items:center;gap:5px;background:var(--kraft);border:1.3px solid var(--line);border-radius:12px;padding:4px 10px;font-size:12px;}
+.item-chip .qty{font-weight:700;color:var(--velvet);margin-inline-start:2px;}
+.card-date-row{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;margin-bottom:3px;}
+.card-price-row{font-family:'Baloo Bhaijaan 2',sans-serif;font-weight:700;color:var(--velvet);font-size:16px;margin-bottom:3px;}
+.card-meta-row{font-size:11.5px;opacity:0.58;margin-bottom:2px;}
+.card-footer{display:flex;justify-content:flex-end;gap:4px;margin-top:13px;padding-top:11px;border-top:1px dashed var(--line);}
+.icon-btn{background:transparent;border:none;color:var(--espresso);opacity:0.5;cursor:pointer;padding:7px;border-radius:9px;display:inline-flex;}
+.icon-btn:hover{opacity:1;background:rgba(61,42,36,0.07);}
+.icon-btn.danger:hover{color:var(--velvet);}
+
+/* ---- Empty state ---- */
+.empty-state{text-align:center;padding:64px 20px;}
+.empty-state h3{font-size:20px;margin:16px 0 6px;}
+.empty-state p{opacity:0.62;font-size:14px;max-width:380px;margin:0 auto;}
+
+/* ---- Modal & form ---- */
+.modal-overlay{position:fixed;inset:0;background:rgba(61,42,36,0.45);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50;}
+.modal-card{background:var(--paper);border-radius:20px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(61,42,36,0.32);}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-header h3{font-size:22px;color:var(--velvet);}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;opacity:0.75;}
+.field input[type=text],.field input[type=tel],.field input[type=date],.field input[type=time],.field input[type=number],.field select,.field textarea{
+  width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--kraft);font-size:14.5px;color:var(--espresso);
+}
+.field textarea{resize:vertical;min-height:62px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.type-toggle{display:flex;gap:8px;height:41px;}
+.type-btn{flex:1;border-radius:12px;border:1.5px solid var(--line);background:var(--kraft);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:var(--espresso);}
+.type-btn.active{background:var(--velvet);border-color:var(--velvet);color:var(--paper);}
+.items-box{border:1.5px dashed var(--line);border-radius:14px;padding:12px;}
+.item-add-row{display:grid;grid-template-columns:1.3fr 1fr 62px auto;gap:7px;margin-bottom:10px;}
+.item-add-row input{padding:9px 10px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);font-size:13px;width:100%;}
+.btn-add-item{background:var(--pistachio);color:var(--paper);border:none;border-radius:9px;padding:0 13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.btn-add-item:hover{background:var(--pistachio-dark);}
+.form-items-list{display:flex;flex-wrap:wrap;gap:6px;}
+.form-item-chip{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1.3px solid var(--line);border-radius:12px;padding:4px 5px 4px 10px;font-size:12px;}
+.remove-item-btn{background:transparent;border:none;color:var(--velvet);cursor:pointer;display:flex;padding:4px;border-radius:50%;}
+.remove-item-btn:hover{background:rgba(140,31,59,0.1);}
+.no-items-hint{font-size:12.5px;opacity:0.48;padding:3px 2px;}
+.form-error{background:rgba(140,31,59,0.09);color:var(--velvet-dark);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;padding-top:15px;border-top:1px solid var(--line);}
+.btn-secondary{background:transparent;border:1.5px solid var(--line);color:var(--espresso);border-radius:999px;padding:10px 20px;cursor:pointer;font-size:14px;}
+.btn-secondary:hover{background:rgba(61,42,36,0.05);}
+
+/* ---- Confirm modal ---- */
+.confirm-modal{max-width:380px;text-align:center;}
+.confirm-modal p{font-size:14.5px;}
+.confirm-title{color:var(--velvet);margin-bottom:10px;font-size:19px;}
+.confirm-actions{display:flex;gap:10px;justify-content:center;margin-top:18px;}
+.btn-danger{background:var(--velvet);color:var(--paper);border:none;border-radius:999px;padding:10px 22px;cursor:pointer;font-size:14px;}
+.btn-danger:hover{background:var(--velvet-dark);}
+
+@media (max-width:480px){
+  .brand-logo{max-width:190px;}
+  .field-row{grid-template-columns:1fr;}
+  .item-add-row{grid-template-columns:1fr 1fr;}
+  .modal-card{padding:18px 15px;}
+}
+</style>
+</head>
+<body>
+<div id="app" class="app-shell"></div>
+
+<script>
+/* ============ Icons ============ */
+const CAN_ICON=`<svg width="46" height="46" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 4.6q3-2.6 6 0" stroke="#3D2A24" stroke-width="1.3" fill="none" stroke-linecap="round"/><circle cx="20" cy="3.2" r="1.1" fill="#3D2A24"/><rect x="8" y="10" width="32" height="27" rx="3" fill="#FFFBF5" stroke="#3D2A24" stroke-width="1.6"/><ellipse cx="24" cy="10" rx="16" ry="4.2" fill="#FFFBF5" stroke="#3D2A24" stroke-width="1.6"/><path d="M8 10c0 2.3 7.2 4.2 16 4.2s16-1.9 16-4.2" stroke="#3D2A24" stroke-width="1.1" opacity="0.5"/><line x1="8" y1="19.5" x2="40" y2="19.5" stroke="#8C1F3B" stroke-width="1.3" opacity="0.5"/><line x1="8" y1="30" x2="40" y2="30" stroke="#8C1F3B" stroke-width="1.3" opacity="0.5"/></svg>`;
+const CAN_MINI_ICON=`<svg viewBox="0 0 20 20" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:none"><rect x="5" y="4" width="10" height="13" rx="2.5" stroke="currentColor" stroke-width="1.4"/><line x1="5" y1="8.3" x2="15" y2="8.3" stroke="currentColor" stroke-width="1.1" opacity="0.65"/><line x1="5" y1="12.6" x2="15" y2="12.6" stroke="currentColor" stroke-width="1.1" opacity="0.65"/></svg>`;
+const TRUCK_ICON=`<svg viewBox="0 0 20 20" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:none"><rect x="2" y="6" width="9" height="7" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M11 8h3.5L17 10.5V13h-6V8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="5.5" cy="14.3" r="1.35" stroke="currentColor" stroke-width="1.2"/><circle cx="14" cy="14.3" r="1.35" stroke="currentColor" stroke-width="1.2"/></svg>`;
+const STORE_ICON=`<svg viewBox="0 0 20 20" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:none"><path d="M3 8l1-4h12l1 4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 8a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.2"/><path d="M4 8.5V17h12V8.5" stroke="currentColor" stroke-width="1.4"/><rect x="8.2" y="12" width="3.6" height="5" stroke="currentColor" stroke-width="1.2"/></svg>`;
+const CALENDAR_ICON=`<svg viewBox="0 0 20 20" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:none"><rect x="3" y="4.5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="3" y1="8" x2="17" y2="8" stroke="currentColor" stroke-width="1.4"/><line x1="6.5" y1="3" x2="6.5" y2="6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="13.5" y1="3" x2="13.5" y2="6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+const SEARCH_ICON=`<span class="s-icon"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.8"/><line x1="14" y1="14" x2="18" y2="18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>`;
+const PHONE_ICON_SM=`<svg viewBox="0 0 20 20" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:none"><path d="M4 3h3l1.5 4-2 1.5a10 10 0 0 0 5 5l1.5-2 4 1.5v3a1 1 0 0 1-1 1C9.5 17 3 10.5 3 4a1 1 0 0 1 1-1z" fill="currentColor"/></svg>`;
+const PLUS_ICON=`<svg viewBox="0 0 20 20" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="4" x2="10" y2="16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`;
+const PENCIL_ICON=`<svg viewBox="0 0 20 20" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.4 3.3l3.3 3.3L6 17.3l-4 .8.8-4L13.4 3.3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+const TRASH_ICON=`<svg viewBox="0 0 20 20" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h12M8 6V4.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6M6 6l.8 10.2a1 1 0 0 0 1 .9h4.4a1 1 0 0 0 1-.9L14 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const X_ICON=`<svg viewBox="0 0 20 20" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="5" y1="5" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="15" y1="5" x2="5" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const X_ICON_SM=`<svg viewBox="0 0 20 20" width="10" height="10" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="5" y1="5" x2="15" y2="15" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="15" y1="5" x2="5" y2="15" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+const DOWNLOAD_ICON=`<svg viewBox="0 0 20 20" width="15" height="15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3v9m0 0l-3.5-3.5M10 12l3.5-3.5M4.5 15.5h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const EMPTY_ICON=`<svg width="72" height="72" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="24" cy="13" rx="15" ry="4" stroke="#3D2A24" stroke-width="1.4" stroke-dasharray="3 3"/><path d="M9 13v19c0 2.4 6.7 4.3 15 4.3s15-1.9 15-4.3V13" stroke="#3D2A24" stroke-width="1.4"/><line x1="12" y1="21" x2="36" y2="21" stroke="#3D2A24" stroke-width="1.1" opacity="0.4"/></svg>`;
+const CHEVRON_R_ICON=`<svg viewBox="0 0 20 20" width="15" height="15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5l5 5-5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const CHEVRON_L_ICON=`<svg viewBox="0 0 20 20" width="15" height="15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5l-5 5 5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+/* ============ Constants ============ */
+const TYPE_META={delivery:{label:'توصيل',icon:TRUCK_ICON},pickup:{label:'استلام من المحل',icon:STORE_ICON}};
+const PRODUCT_OPTIONS=['علب كان كيك','بوكس مناسبات','بوكس الورد الطبيعي','بوكس الورد الصناعي','بوكس الدب','بوكس خشبي صغير مع ورد','بوكس خشبي كبير مع ورد','بوكس خشبي صغير مع كان كيك','بوكس خشبي كبير مع كان كيك','أخرى'];
+const FLAVOR_OPTIONS=['تيراميسو','هيزلنت','فستق','ريد فلفت','متنوع'];
+const SOURCE_OPTIONS=['انستغرام','واتساب','اتصال هاتفي','إحالة من زبون','أخرى'];
+const FORM_FIELD_IDS=['f-name','f-phone','f-date','f-area','f-price','f-source','f-notes','f-item-product','f-item-flavor','f-item-qty'];
+
+/* ============ State ============ */
+const state={
+  orders:[],
+  shopName:'CanCake',
+  loading:true,
+  searchQuery:'',
+  typeFilter:'all',
+  formOpen:false,
+  editingId:null,
+  formItems:[],
+  formDraft:{},
+  formError:null,
+  deleteConfirmId:null,
+  shopNameEditing:false,
+  activeTab:'orders',
+  accountsMonth:(function(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})(),
+  connectionError:null,
+};
+
+/* ============ Helpers ============ */
+function escapeHtml(str){
+  if(str===null||str===undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+function dateToStr(d){const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`;}
+function todayStr(){return dateToStr(new Date());}
+function parseLocalDate(dateStr){const parts=dateStr.split('-').map(Number);return new Date(parts[0],parts[1]-1,parts[2]);}
+function addDays(dateStr,n){const dt=parseLocalDate(dateStr);dt.setDate(dt.getDate()+n);return dateToStr(dt);}
+function formatDateNumeric(dateStr){if(!dateStr) return '';const p=dateStr.split('-');return `${Number(p[2])}/${Number(p[1])}/${p[0]}`;}
+function formatTime(t){
+  if(!t) return '';
+  const parts=t.split(':').map(Number);
+  const h=parts[0],m=parts[1];
+  const period=h<12?'ص':'م';
+  let h12=h%12; if(h12===0) h12=12;
+  return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+}
+function shiftMonth(monthStr,delta){
+  const parts=monthStr.split('-').map(Number);
+  const d=new Date(parts[0],parts[1]-1+delta,1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function formatMoney(n){
+  if(n===null||n===undefined||isNaN(n)) n=0;
+  const num=Math.round(n);
+  const neg=num<0;
+  const s=Math.abs(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return (neg?'-':'')+s;
+}
+
+/* ============ Derived data ============ */
+function computeStats(){
+  const today=todayStr();
+  const weekEnd=addDays(today,7);
+  const todayCount=state.orders.filter(o=>o.deliveryDate===today).length;
+  const weekCount=state.orders.filter(o=>o.deliveryDate>=today&&o.deliveryDate<=weekEnd).length;
+  const totalCount=state.orders.length;
+  return {todayCount,weekCount,totalCount};
+}
+function getUrgency(order){
+  const today=todayStr();
+  const tomorrow=addDays(today,1);
+  if(order.deliveryDate<today) return 'overdue';
+  if(order.deliveryDate===today) return 'today';
+  if(order.deliveryDate===tomorrow) return 'tomorrow';
+  return null;
+}
+function getMonthOrders(monthStr){
+  return state.orders.filter(o=>o.deliveryDate&&o.deliveryDate.startsWith(monthStr));
+}
+function computeProductBreakdown(orders){
+  const map={};
+  orders.forEach(o=>{
+    (o.items||[]).forEach(it=>{
+      const key=(it.product||'').trim()||'غير محدد';
+      map[key]=(map[key]||0)+(Number(it.qty)||1);
+    });
+  });
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+}
+function computeMonthTotals(monthStr){
+  const orders=getMonthOrders(monthStr);
+  const count=orders.length;
+  const totalValue=orders.reduce((s,o)=>s+(o.price||0),0);
+  const breakdown=computeProductBreakdown(orders);
+  return {count,totalValue,orders,breakdown};
+}
+function getFilteredSortedOrders(){
+  const q=state.searchQuery.trim().toLowerCase();
+  let list=state.orders.filter(o=>{
+    if(state.typeFilter!=='all'&&o.orderType!==state.typeFilter) return false;
+    if(q){
+      const hay=`${o.customerName||''} ${o.phone||''}`.toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  list.sort((a,b)=>{
+    if(a.deliveryDate<b.deliveryDate) return -1;
+    if(a.deliveryDate>b.deliveryDate) return 1;
+    return 0;
+  });
+  return list;
+}
+
+/* ============ Storage (GitHub Contents API — JSON file in the same repo, no Google involved) ============ */
+const GITHUB_OWNER='jaburibrahim';
+const GITHUB_REPO='cancake-app';
+const GITHUB_PATH='data.json';
+// بعد ما تسوي التوكن (راجع تعليمات التركيب)، الصقه هنا بين القوسين:
+const GITHUB_TOKEN='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';
+const GH_API=`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}`;
+
+let currentSha=null;
+
+function isGithubConfigured(){
+  return !!GITHUB_TOKEN && GITHUB_TOKEN.indexOf('PASTE_')===-1;
+}
+function utf8ToB64(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64ToUtf8(b64){
+  return decodeURIComponent(escape(atob(b64.replace(/\n/g,''))));
+}
+async function ghRead(){
+  const res=await fetch(GH_API,{headers:{'Authorization':'Bearer '+GITHUB_TOKEN}});
+  if(res.status===404){ currentSha=null; return {shopName:'CanCake',orders:[]}; }
+  if(!res.ok) throw new Error('قراءة گيتهاب فشلت (كود '+res.status+')');
+  const data=await res.json();
+  currentSha=data.sha;
+  try{ return JSON.parse(b64ToUtf8(data.content)); }
+  catch(e){ return {shopName:'CanCake',orders:[]}; }
+}
+async function ghWriteRaw(obj){
+  const body={
+    message:'تحديث بيانات CanCake — '+new Date().toISOString(),
+    content:utf8ToB64(JSON.stringify(obj,null,2)),
+  };
+  if(currentSha) body.sha=currentSha;
+  const res=await fetch(GH_API,{
+    method:'PUT',
+    headers:{'Authorization':'Bearer '+GITHUB_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  if(res.status===409){ const err=new Error('تعارض تحديث'); err.isConflict=true; throw err; }
+  if(!res.ok) throw new Error('حفظ گيتهاب فشل (كود '+res.status+')');
+  const data=await res.json();
+  currentSha=data.content.sha;
+}
+// يقرأ أحدث نسخة، يطبّق التعديل المطلوب فوقها، ويحفظ — ولو صار تعارض (شخص ثاني حفظ بنفس اللحظة)
+// يعيد القراءة والتطبيق والحفظ من جديد (لين ٣ محاولات) بدل ما يمسح تعديل الشخص الثاني بالغلط.
+async function ghApplyAndSave(applyFn){
+  let lastErr=null;
+  for(let attempt=0;attempt<3;attempt++){
+    const current=await ghRead();
+    const updated=applyFn(current);
+    try{
+      await ghWriteRaw(updated);
+      return updated;
+    }catch(e){
+      lastErr=e;
+      if(!e.isConflict) throw e;
+    }
+  }
+  throw lastErr||new Error('تعذر الحفظ بعد عدة محاولات');
+}
+async function loadData(){
+  if(!isGithubConfigured()){
+    state.loading=false;
+    state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب';
+    render();
+    return;
+  }
+  try{
+    const data=await ghRead();
+    state.orders=data.orders||[];
+    if(data.shopName) state.shopName=data.shopName;
+    state.connectionError=null;
+  }catch(e){
+    state.connectionError='تعذر الاتصال بقاعدة البيانات — '+(e&&e.message?e.message:'خطأ غير معروف');
+  }
+  state.loading=false;
+  render();
+  startPolling();
+}
+async function persistOrder(order){
+  if(!isGithubConfigured()){ state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب'; render(); return; }
+  try{
+    const updated=await ghApplyAndSave(function(current){
+      const orders=(current.orders||[]).slice();
+      const idx=orders.findIndex(o=>o.id===order.id);
+      if(idx>-1) orders[idx]=order; else orders.push(order);
+      return {shopName:current.shopName||state.shopName,orders};
+    });
+    state.orders=updated.orders;
+    state.connectionError=null;
+    render();
+  }catch(e){ state.connectionError='تعذر حفظ الطلب — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
+}
+async function persistDeleteOrder(id){
+  if(!isGithubConfigured()){ state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب'; render(); return; }
+  try{
+    const updated=await ghApplyAndSave(function(current){
+      const orders=(current.orders||[]).filter(o=>o.id!==id);
+      return {shopName:current.shopName||state.shopName,orders};
+    });
+    state.orders=updated.orders;
+    state.connectionError=null;
+    render();
+  }catch(e){ state.connectionError='تعذر حذف الطلب — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
+}
+async function persistSettings(){
+  if(!isGithubConfigured()){ state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب'; render(); return; }
+  try{
+    await ghApplyAndSave(function(current){
+      return {shopName:state.shopName,orders:current.orders||[]};
+    });
+    state.connectionError=null;
+  }catch(e){ state.connectionError='تعذر حفظ الإعدادات — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
+}
+let pollTimer=null;
+function startPolling(){
+  if(pollTimer||!isGithubConfigured()) return;
+  pollTimer=setInterval(async function(){
+    if(document.hidden||state.formOpen) return;
+    try{
+      const data=await ghRead();
+      state.orders=data.orders||[];
+      state.connectionError=null;
+      render();
+    }catch(e){ /* ignore transient network errors during background poll */ }
+  },20000);
+}
+function exportBackup(){
+  const dataStr=JSON.stringify({shopName:state.shopName,orders:state.orders,exportedAt:new Date().toISOString()},null,2);
+  const blob=new Blob([dataStr],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`نسخة-احتياطية-طلبات-كان-كيك-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============ Mutations ============ */
+function captureFormDraftIfOpen(){
+  if(!state.formOpen) return;
+  FORM_FIELD_IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) state.formDraft[id]=el.value;
+  });
+}
+function blankDraft(){
+  return {
+    'f-name':'','f-phone':'',orderType:'delivery',
+    'f-date':'','f-area':'',
+    'f-price':'','f-source':'','f-notes':'',
+    'f-item-product':'','f-item-flavor':'','f-item-qty':'1',
+  };
+}
+function openForm(id){
+  state.formOpen=true;
+  state.formError=null;
+  if(id){
+    const o=state.orders.find(o=>o.id===id);
+    if(!o) return;
+    state.editingId=id;
+    state.formItems=(o.items||[]).map(it=>({product:it.product,flavor:it.flavor,qty:it.qty}));
+    state.formDraft={
+      'f-name':o.customerName||'','f-phone':o.phone||'',
+      orderType:o.orderType||'delivery',
+      'f-date':o.deliveryDate||'','f-area':o.deliveryArea||'',
+      'f-source':o.source||'',
+      'f-price':o.price!=null?String(o.price):'',
+      'f-notes':o.notes||'',
+      'f-item-product':'','f-item-flavor':'','f-item-qty':'1',
+    };
+  }else{
+    state.editingId=null;
+    state.formItems=[];
+    state.formDraft=blankDraft();
+  }
+  render();
+}
+function closeForm(){
+  state.formOpen=false;
+  state.editingId=null;
+  state.formError=null;
+  render();
+}
+function addItem(){
+  captureFormDraftIfOpen();
+  const productEl=document.getElementById('f-item-product');
+  const flavorEl=document.getElementById('f-item-flavor');
+  const qtyEl=document.getElementById('f-item-qty');
+  const product=productEl?productEl.value.trim():'';
+  const flavor=flavorEl?flavorEl.value.trim():'';
+  let qty=qtyEl?parseInt(qtyEl.value,10):1;
+  if(!product) return;
+  if(!qty||qty<1) qty=1;
+  state.formItems.push({product,flavor,qty});
+  state.formDraft['f-item-product']='';
+  state.formDraft['f-item-flavor']='';
+  state.formDraft['f-item-qty']='1';
+  if(productEl) productEl.value='';
+  if(flavorEl) flavorEl.value='';
+  if(qtyEl) qtyEl.value='1';
+  render();
+  const again=document.getElementById('f-item-product');
+  if(again) again.focus();
+}
+function removeItem(index){
+  captureFormDraftIfOpen();
+  state.formItems.splice(index,1);
+  render();
+}
+function submitForm(){
+  captureFormDraftIfOpen();
+  const d=state.formDraft;
+  const name=(d['f-name']||'').trim();
+  const deliveryDate=d['f-date']||'';
+  if(!name||!deliveryDate){
+    state.formError='الرجاء تعبئة اسم الزبون والتاريخ على الأقل';
+    render();
+    return;
+  }
+  const orderType=d.orderType||'delivery';
+  const existing=state.editingId?state.orders.find(o=>o.id===state.editingId):null;
+  const orderData={
+    id:state.editingId||uid(),
+    customerName:name,
+    phone:(d['f-phone']||'').trim(),
+    orderType,
+    deliveryDate,
+    deliveryArea:orderType==='delivery'?(d['f-area']||'').trim():'',
+    items:state.formItems.map(it=>({product:it.product,flavor:it.flavor,qty:it.qty})),
+    source:(d['f-source']||'').trim(),
+    price:d['f-price']?Number(d['f-price']):null,
+    notes:(d['f-notes']||'').trim(),
+    createdAt:existing?existing.createdAt:new Date().toISOString(),
+  };
+  const idx=state.orders.findIndex(o=>o.id===orderData.id);
+  if(idx>-1) state.orders[idx]=orderData; else state.orders.push(orderData);
+  closeForm();
+  persistOrder(orderData);
+}
+function requestDelete(id){state.deleteConfirmId=id;render();}
+function cancelDelete(){state.deleteConfirmId=null;render();}
+function confirmDelete(){
+  const id=state.deleteConfirmId;
+  state.orders=state.orders.filter(o=>o.id!==id);
+  state.deleteConfirmId=null;
+  render();
+  persistDeleteOrder(id);
+}
+function saveShopName(){
+  const el=document.getElementById('shop-name-input');
+  const val=el?el.value.trim():'';
+  if(val) state.shopName=val;
+  state.shopNameEditing=false;
+  render();
+  persistSettings();
+}
+
+/* ============ Render ============ */
+function renderHeader(){
+  const logoImg = `<img src="https://jaburibrahim.github.io/cancake-app/logo.png" alt="CanCake" class="brand-logo" width="640" height="359" />`;
+  if(state.shopNameEditing){
+    return `<header class="shop-header">
+      ${logoImg}
+      <input id="shop-name-input" class="shop-name-input" value="${escapeHtml(state.shopName)}" maxlength="60" />
+      <p class="tagline">سجل الطلبات — من أول رسالة إلى التسليم</p>
+    </header>`;
+  }
+  return `<header class="shop-header">
+    ${logoImg}
+    <div class="shop-title-row" data-action="edit-shop-name" title="اضغط لتعديل الاسم">
+      <h1 class="shop-title">${escapeHtml(state.shopName)}</h1>
+      <span class="edit-hint-icon">${PENCIL_ICON}</span>
+    </div>
+    <p class="tagline">سجل الطلبات — من أول رسالة إلى التسليم</p>
+  </header>`;
+}
+function renderStats(){
+  const s=computeStats();
+  return `<div class="stats-row cols-3">
+    <div class="stat-card"><div class="stat-num">${s.todayCount}</div><div class="stat-label">طلبات اليوم</div></div>
+    <div class="stat-card"><div class="stat-num">${s.weekCount}</div><div class="stat-label">خلال الأسبوع</div></div>
+    <div class="stat-card"><div class="stat-num">${s.totalCount}</div><div class="stat-label">إجمالي الطلبات</div></div>
+  </div>`;
+}
+function renderToolbar(){
+  return `<div class="toolbar">
+    <div class="search-wrap">
+      <input id="search-input" class="search-input" type="text" placeholder="ابحث بالاسم أو رقم الهاتف" value="${escapeHtml(state.searchQuery)}" />
+      ${SEARCH_ICON}
+    </div>
+    <select id="type-filter" class="filter-select">
+      <option value="all"${state.typeFilter==='all'?' selected':''}>كل الطلبات</option>
+      <option value="delivery"${state.typeFilter==='delivery'?' selected':''}>توصيل</option>
+      <option value="pickup"${state.typeFilter==='pickup'?' selected':''}>استلام</option>
+    </select>
+    <button type="button" class="btn-ghost" data-action="export-backup">${DOWNLOAD_ICON}<span>نسخة احتياطية</span></button>
+    <button type="button" class="btn-primary" data-action="open-add-form">${PLUS_ICON}<span>طلب جديد</span></button>
+  </div>`;
+}
+function renderOrderCard(o){
+  const urgency=getUrgency(o);
+  const typeInfo=TYPE_META[o.orderType]||TYPE_META.delivery;
+  const ribbon = urgency==='today'?`<span class="urgency-ribbon urgency-today">اليوم</span>`
+    : urgency==='tomorrow'?`<span class="urgency-ribbon urgency-tomorrow">غدًا</span>`
+    : urgency==='overdue'?`<span class="urgency-ribbon urgency-overdue">متأخر</span>` : '';
+  const itemsHtml = (o.items&&o.items.length)
+    ? `<div class="card-items">${o.items.map(it=>`<span class="item-chip">${CAN_MINI_ICON}${escapeHtml(it.product)}${it.flavor?' · '+escapeHtml(it.flavor):''}<span class="qty">×${it.qty}</span></span>`).join('')}</div>`
+    : '';
+  const phoneHtml = o.phone ? `<div class="card-phone">${PHONE_ICON_SM}<bdi>${escapeHtml(o.phone)}</bdi></div>` : '';
+  const areaHtml = (o.orderType==='delivery' && o.deliveryArea) ? ` · ${escapeHtml(o.deliveryArea)}` : '';
+  const priceHtml = o.price!=null ? `<div class="card-price-row">${formatMoney(o.price)}</div>` : '';
+  const metaHtml = o.source ? `<div class="card-meta-row">${escapeHtml(o.source)}</div>` : '';
+  return `<div class="order-card">
+    <div class="card-seam top"></div>
+    ${ribbon}
+    <h3 class="card-name">${escapeHtml(o.customerName)}</h3>
+    ${phoneHtml}
+    <div class="card-type-row">${typeInfo.icon}<span>${typeInfo.label}${areaHtml}</span></div>
+    ${itemsHtml}
+    <div class="card-date-row">${CALENDAR_ICON}<span>${formatDateNumeric(o.deliveryDate)}</span></div>
+    ${priceHtml}
+    ${metaHtml}
+    <div class="card-seam bottom"></div>
+    <div class="card-footer">
+      <button type="button" class="icon-btn" data-action="open-edit-form" data-id="${o.id}" aria-label="تعديل" title="تعديل">${PENCIL_ICON}</button>
+      <button type="button" class="icon-btn danger" data-action="delete-request" data-id="${o.id}" aria-label="حذف" title="حذف">${TRASH_ICON}</button>
+    </div>
+  </div>`;
+}
+function renderOrdersSection(){
+  if(state.loading) return `<div class="empty-state"><p>جاري التحميل...</p></div>`;
+  const list=getFilteredSortedOrders();
+  if(state.orders.length===0){
+    return `<div class="empty-state">${EMPTY_ICON}<h3>لسا ما عندك طلبات مسجّلة</h3><p>أول طلب يوصلك عبر الدايركت أو الواتساب، سجّله هنا حتى ما يضيع بالزحمة.</p></div>`;
+  }
+  if(list.length===0){
+    return `<div class="empty-state">${EMPTY_ICON}<h3>ما فيه نتائج مطابقة</h3><p>جرّب كلمة بحث ثانية أو غيّر الفلتر.</p></div>`;
+  }
+  return `<div class="orders-grid">${list.map(renderOrderCard).join('')}</div>`;
+}
+function renderFormModal(){
+  const d=state.formDraft;
+  const isEdit=!!state.editingId;
+  const orderType=d.orderType||'delivery';
+  const dateLabel = orderType==='delivery' ? 'تاريخ التوصيل' : 'تاريخ الاستلام';
+  const itemsListHtml = state.formItems.length
+    ? `<div class="form-items-list">${state.formItems.map((it,idx)=>`<span class="form-item-chip">${CAN_MINI_ICON}${escapeHtml(it.product)}${it.flavor?' · '+escapeHtml(it.flavor):''} ×${it.qty}<button type="button" class="remove-item-btn" data-action="remove-item" data-index="${idx}" aria-label="إزالة العنصر">${X_ICON_SM}</button></span>`).join('')}</div>`
+    : `<div class="no-items-hint">ما أضفت أي عنصر بعد — أضف كان أو بوكس من الحقول فوق</div>`;
+  return `<div class="modal-overlay" data-action="overlay-close">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>${isEdit?'تعديل الطلب':'طلب جديد'}</h3>
+        <button type="button" class="icon-btn" data-action="close-form" aria-label="إغلاق">${X_ICON}</button>
+      </div>
+      ${state.formError?`<div class="form-error">${escapeHtml(state.formError)}</div>`:''}
+      <div class="field">
+        <label for="f-name">اسم الزبون *</label>
+        <input type="text" id="f-name" value="${escapeHtml(d['f-name']||'')}" placeholder="مثلاً أحمد كريم" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-phone">رقم الهاتف</label>
+          <input type="tel" id="f-phone" value="${escapeHtml(d['f-phone']||'')}" placeholder="07xx xxx xxxx" />
+        </div>
+        <div class="field">
+          <label>نوع الطلب</label>
+          <div class="type-toggle">
+            <button type="button" class="type-btn ${orderType==='delivery'?'active':''}" data-action="set-order-type" data-value="delivery">${TRUCK_ICON}<span>توصيل</span></button>
+            <button type="button" class="type-btn ${orderType==='pickup'?'active':''}" data-action="set-order-type" data-value="pickup">${STORE_ICON}<span>استلام</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-date">${dateLabel} *</label>
+          <input type="date" id="f-date" value="${escapeHtml(d['f-date']||'')}" />
+        </div>
+        <div class="field">
+          <label for="f-price">السعر الإجمالي</label>
+          <input type="number" id="f-price" value="${escapeHtml(d['f-price']||'')}" placeholder="مثلاً 35000" />
+        </div>
+      </div>
+      ${orderType==='delivery'?`<div class="field">
+        <label for="f-area">منطقة التوصيل</label>
+        <input type="text" id="f-area" value="${escapeHtml(d['f-area']||'')}" placeholder="مثلاً الكرادة، المنصور..." />
+      </div>`:''}
+      <div class="field">
+        <label>العناصر</label>
+        <div class="items-box">
+          <div class="item-add-row">
+            <input type="text" id="f-item-product" list="product-options" value="${escapeHtml(d['f-item-product']||'')}" placeholder="المنتج (كان، بوكس..)" />
+            <input type="text" id="f-item-flavor" list="flavor-options" value="${escapeHtml(d['f-item-flavor']||'')}" placeholder="النكهة، ولون الدب أو نوع الغازي إذا يلزم" />
+            <input type="number" id="f-item-qty" min="1" value="${escapeHtml(d['f-item-qty']||'1')}" />
+            <button type="button" class="btn-add-item" data-action="add-item" aria-label="إضافة عنصر">${PLUS_ICON}</button>
+          </div>
+          ${itemsListHtml}
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-source">مصدر الطلب</label>
+        <input type="text" id="f-source" list="source-options" value="${escapeHtml(d['f-source']||'')}" placeholder="انستغرام، واتساب..." />
+      </div>
+      <div class="field">
+        <label for="f-notes">ملاحظات</label>
+        <textarea id="f-notes" placeholder="رسالة على الكرت، ملاحظات توصيل...">${escapeHtml(d['f-notes']||'')}</textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-action="close-form">إلغاء</button>
+        <button type="button" class="btn-primary" data-action="submit-form">حفظ الطلب</button>
+      </div>
+    </div>
+    <datalist id="product-options">${PRODUCT_OPTIONS.map(p=>`<option value="${escapeHtml(p)}"></option>`).join('')}</datalist>
+    <datalist id="flavor-options">${FLAVOR_OPTIONS.map(p=>`<option value="${escapeHtml(p)}"></option>`).join('')}</datalist>
+    <datalist id="source-options">${SOURCE_OPTIONS.map(p=>`<option value="${escapeHtml(p)}"></option>`).join('')}</datalist>
+  </div>`;
+}
+function renderDeleteModal(){
+  const o=state.orders.find(o=>o.id===state.deleteConfirmId);
+  if(!o) return '';
+  return `<div class="modal-overlay" data-action="overlay-close-delete">
+    <div class="modal-card confirm-modal">
+      <h3 class="confirm-title">تأكيد الحذف</h3>
+      <p>هل تريد حذف طلب <strong>${escapeHtml(o.customerName)}</strong>؟ لا يمكن التراجع عن هذا الإجراء.</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn-secondary" data-action="delete-cancel">إلغاء</button>
+        <button type="button" class="btn-danger" data-action="delete-confirm">حذف نهائي</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderTabs(){
+  return `<div class="main-tabs">
+    <button type="button" class="main-tab-btn ${state.activeTab==='orders'?'active':''}" data-action="switch-tab" data-value="orders">الطلبات</button>
+    <button type="button" class="main-tab-btn ${state.activeTab==='accounts'?'active':''}" data-action="switch-tab" data-value="accounts">الحسابات</button>
+  </div>`;
+}
+function renderMonthNav(){
+  return `<div class="month-nav">
+    <button type="button" class="month-nav-btn" data-action="month-prev" aria-label="الشهر السابق" title="الشهر السابق">${CHEVRON_R_ICON}</button>
+    <input type="month" id="accounts-month-input" class="month-input" value="${escapeHtml(state.accountsMonth)}" />
+    <button type="button" class="month-nav-btn" data-action="month-next" aria-label="الشهر التالي" title="الشهر التالي">${CHEVRON_L_ICON}</button>
+  </div>`;
+}
+function renderAccountsStats(){
+  const t=computeMonthTotals(state.accountsMonth);
+  return `<div class="stats-row cols-2">
+    <div class="stat-card"><div class="stat-num">${t.count}</div><div class="stat-label">عدد الطلبات</div></div>
+    <div class="stat-card tint-pistachio"><div class="stat-num">${formatMoney(t.totalValue)}</div><div class="stat-label">إجمالي القيمة</div></div>
+  </div>`;
+}
+function renderProductBreakdown(){
+  const t=computeMonthTotals(state.accountsMonth);
+  if(t.breakdown.length===0) return '';
+  const max=t.breakdown[0][1];
+  return `<div class="breakdown-card">
+    <h3 class="breakdown-title">توزيع الطلبات حسب المنتج</h3>
+    <div class="breakdown-list">
+      ${t.breakdown.map(([product,qty])=>{
+        const pct = max>0 ? Math.round((qty/max)*100) : 0;
+        return `<div class="breakdown-row"><span class="breakdown-bar" style="width:${pct}%"></span><span class="breakdown-name">${CAN_MINI_ICON}${escapeHtml(product)}</span><span class="breakdown-qty">${qty}</span></div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+function renderAccountsOrderList(){
+  const t=computeMonthTotals(state.accountsMonth);
+  if(t.orders.length===0){
+    return `<div class="empty-state">${EMPTY_ICON}<h3>ماكو طلبات بهذا الشهر</h3><p>جرّب تنتقل لشهر ثاني من الأسهم فوق، أو سجّل طلب جديد من تبويب «الطلبات».</p></div>`;
+  }
+  const sorted=[...t.orders].sort((a,b)=>a.deliveryDate<b.deliveryDate?-1:a.deliveryDate>b.deliveryDate?1:0);
+  return `<div class="accounts-table-wrap"><div class="accounts-table">
+    <div class="accounts-row accounts-head"><span>التاريخ</span><span>الزبون</span><span>القيمة</span><span></span></div>
+    ${sorted.map(o=>`<div class="accounts-row">
+      <span>${formatDateNumeric(o.deliveryDate)}</span>
+      <span>${escapeHtml(o.customerName)}</span>
+      <span class="num-cell">${o.price!=null?formatMoney(o.price):'—'}</span>
+      <button type="button" class="icon-btn" data-action="open-edit-form" data-id="${o.id}" aria-label="تعديل" title="تعديل">${PENCIL_ICON}</button>
+    </div>`).join('')}
+    <div class="accounts-row accounts-total-row"><span></span><span>الإجمالي</span><span class="num-cell">${formatMoney(t.totalValue)}</span><span></span></div>
+  </div></div>`;
+}
+function renderAccountsView(){
+  return `${renderMonthNav()}${renderAccountsStats()}${renderProductBreakdown()}${renderAccountsOrderList()}`;
+}
+function renderConnectionBanner(){
+  if(!state.connectionError) return '';
+  return `<div class="connection-banner">${escapeHtml(state.connectionError)}</div>`;
+}
+function renderApp(){
+  const body = state.activeTab==='accounts'
+    ? renderAccountsView()
+    : `${renderStats()}${renderToolbar()}${renderOrdersSection()}`;
+  return `${renderHeader()}${renderConnectionBanner()}${renderTabs()}${body}${state.formOpen?renderFormModal():''}${state.deleteConfirmId?renderDeleteModal():''}`;
+}
+function render(){
+  captureFormDraftIfOpen();
+  const prevActive=document.activeElement;
+  const prevId=prevActive&&prevActive.id;
+  const prevSelStart=(prevActive&&typeof prevActive.selectionStart==='number')?prevActive.selectionStart:null;
+  const prevSelEnd=(prevActive&&typeof prevActive.selectionEnd==='number')?prevActive.selectionEnd:null;
+
+  document.getElementById('app').innerHTML=renderApp();
+
+  if(state.shopNameEditing&&prevId!=='shop-name-input'){
+    const el=document.getElementById('shop-name-input');
+    if(el){el.focus();el.select();}
+  }else if(prevId){
+    const el=document.getElementById(prevId);
+    if(el&&typeof el.focus==='function'){
+      el.focus();
+      if(prevSelStart!==null&&el.setSelectionRange){
+        try{el.setSelectionRange(prevSelStart,prevSelEnd);}catch(e){}
+      }
+    }
+  }
+}
+
+/* ============ Events ============ */
+const appEl=document.getElementById('app');
+
+appEl.addEventListener('click',function(e){
+  const el=e.target.closest('[data-action]');
+  if(!el) return;
+  const action=el.dataset.action;
+  const id=el.dataset.id;
+  switch(action){
+    case 'open-add-form': openForm(); break;
+    case 'open-edit-form': openForm(id); break;
+    case 'close-form': closeForm(); break;
+    case 'overlay-close': if(e.target===el) closeForm(); break;
+    case 'overlay-close-delete': if(e.target===el) cancelDelete(); break;
+    case 'delete-request': requestDelete(id); break;
+    case 'delete-confirm': confirmDelete(); break;
+    case 'delete-cancel': cancelDelete(); break;
+    case 'set-order-type': captureFormDraftIfOpen(); state.formDraft.orderType=el.dataset.value; render(); break;
+    case 'add-item': addItem(); break;
+    case 'remove-item': removeItem(Number(el.dataset.index)); break;
+    case 'submit-form': submitForm(); break;
+    case 'edit-shop-name': state.shopNameEditing=true; render(); break;
+    case 'export-backup': exportBackup(); break;
+    case 'switch-tab': state.activeTab=el.dataset.value; render(); break;
+    case 'month-prev': state.accountsMonth=shiftMonth(state.accountsMonth,-1); render(); break;
+    case 'month-next': state.accountsMonth=shiftMonth(state.accountsMonth,1); render(); break;
+  }
+});
+appEl.addEventListener('input',function(e){
+  if(e.target.id==='search-input'){ state.searchQuery=e.target.value; render(); }
+});
+appEl.addEventListener('change',function(e){
+  if(e.target.id==='type-filter'){ state.typeFilter=e.target.value; render(); }
+  if(e.target.id==='accounts-month-input'&&e.target.value){ state.accountsMonth=e.target.value; render(); }
+});
+appEl.addEventListener('focusout',function(e){
+  if(e.target.id==='shop-name-input'){ saveShopName(); }
+});
+appEl.addEventListener('keydown',function(e){
+  if(e.target.id==='shop-name-input'&&e.key==='Enter'){ e.preventDefault(); e.target.blur(); }
+  if((e.target.id==='f-item-product'||e.target.id==='f-item-flavor'||e.target.id==='f-item-qty')&&e.key==='Enter'){
+    e.preventDefault(); addItem();
+  }
+  if(e.key==='Escape'){
+    if(state.shopNameEditing){ state.shopNameEditing=false; render(); }
+    else if(state.deleteConfirmId){ cancelDelete(); }
+    else if(state.formOpen){ closeForm(); }
+  }
+});
+
+/* ============ Boot ============ */
+render();
+loadData();
+</script>
+</body>
+</html>
