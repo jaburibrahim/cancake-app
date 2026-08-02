@@ -345,7 +345,9 @@ function b64ToUtf8(b64){
   return decodeURIComponent(escape(atob(b64.replace(/\n/g,''))));
 }
 async function ghRead(){
-  const res=await fetch(GH_API,{headers:{'Authorization':'Bearer '+getGithubToken()}});
+  // بدون ترويسة Authorization هنا عمدًا — الريبو عام، القراءة ما تحتاج توكن،
+  // وتفادي الترويسة يلغي فحص CORS المسبق (preflight) اللي القراءة العادية بالمتصفح ما تمر فيه أصلاً.
+  const res=await fetch(GH_API);
   if(res.status===404){ currentSha=null; return {shopName:'CanCake',orders:[]}; }
   if(!res.ok) throw new Error('قراءة گيتهاب فشلت (كود '+res.status+')');
   const data=await res.json();
