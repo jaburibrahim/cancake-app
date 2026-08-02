@@ -127,6 +127,7 @@ input,select,textarea{font-family:inherit;}
 .card-date-row{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;margin-bottom:3px;}
 .card-price-row{font-family:'Baloo Bhaijaan 2',sans-serif;font-weight:700;color:var(--velvet);font-size:16px;margin-bottom:3px;}
 .card-meta-row{font-size:11.5px;opacity:0.58;margin-bottom:2px;}
+.card-notes{font-size:12px;opacity:0.72;background:rgba(61,42,36,0.045);border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.5;white-space:pre-wrap;}
 .card-footer{display:flex;justify-content:flex-end;gap:4px;margin-top:13px;padding-top:11px;border-top:1px dashed var(--line);}
 .icon-btn{background:transparent;border:none;color:var(--espresso);opacity:0.5;cursor:pointer;padding:7px;border-radius:9px;display:inline-flex;}
 .icon-btn:hover{opacity:1;background:rgba(61,42,36,0.07);}
@@ -639,6 +640,7 @@ function renderOrderCard(o){
   const areaHtml = (o.orderType==='delivery' && o.deliveryArea) ? ` · ${escapeHtml(o.deliveryArea)}` : '';
   const priceHtml = o.price!=null ? `<div class="card-price-row">${formatMoney(o.price)}</div>` : '';
   const metaHtml = o.source ? `<div class="card-meta-row">${escapeHtml(o.source)}</div>` : '';
+  const notesHtml = o.notes ? `<div class="card-notes">${escapeHtml(o.notes)}</div>` : '';
   return `<div class="order-card">
     <div class="card-seam top"></div>
     ${ribbon}
@@ -649,6 +651,7 @@ function renderOrderCard(o){
     <div class="card-date-row">${CALENDAR_ICON}<span>${formatDateNumeric(o.deliveryDate)}</span></div>
     ${priceHtml}
     ${metaHtml}
+    ${notesHtml}
     <div class="card-seam bottom"></div>
     <div class="card-footer">
       <button type="button" class="icon-btn" data-action="open-edit-form" data-id="${o.id}" aria-label="تعديل" title="تعديل">${PENCIL_ICON}</button>
