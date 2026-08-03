@@ -41,19 +41,6 @@
       "createdAt": "2026-08-03T00:01:27.381Z"
     },
     {
-      "id": "mscgy5n889zpw2",
-      "customerName": "213",
-      "phone": "213",
-      "orderType": "delivery",
-      "deliveryDate": "2026-08-07",
-      "deliveryArea": "",
-      "items": [],
-      "source": "",
-      "price": null,
-      "notes": "",
-      "createdAt": "2026-08-03T00:06:17.108Z"
-    },
-    {
       "id": "msch55t2t650fe",
       "customerName": "احمد محمد",
       "phone": "0727260468",
