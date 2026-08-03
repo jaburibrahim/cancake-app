@@ -390,18 +390,29 @@ async function ghWriteRaw(obj){
 // يعيد القراءة والتطبيق والحفظ من جديد (لين ٣ محاولات) بدل ما يمسح تعديل الشخص الثاني بالغلط.
 async function ghApplyAndSave(applyFn){
   let lastErr=null;
-  for(let attempt=0;attempt<3;attempt++){
-    const current=await ghRead();
-    const updated=applyFn(current);
+  for(let attempt=0;attempt<4;attempt++){
+    if(attempt>0){
+      // مهلة قصيرة تزيد كل محاولة، تعطي فرصة لأي انقطاع نت لحظي يزول قبل نعيد المحاولة
+      await new Promise(function(resolve){ setTimeout(resolve,500*attempt); });
+    }
     try{
+      const current=await ghRead();
+      const updated=applyFn(current);
       await ghWriteRaw(updated);
       return updated;
     }catch(e){
       lastErr=e;
-      if(!e.isConflict) throw e;
     }
   }
   throw lastErr||new Error('تعذر الحفظ بعد عدة محاولات');
+}
+async function ghReadWithRetry(){
+  let lastErr=null;
+  for(let attempt=0;attempt<3;attempt++){
+    if(attempt>0) await new Promise(function(resolve){ setTimeout(resolve,500*attempt); });
+    try{ return await ghRead(); }catch(e){ lastErr=e; }
+  }
+  throw lastErr;
 }
 async function loadData(){
   if(!isGithubConfigured()){
@@ -410,7 +421,7 @@ async function loadData(){
     return;
   }
   try{
-    const data=await ghRead();
+    const data=await ghReadWithRetry();
     state.orders=data.orders||[];
     if(data.shopName) state.shopName=data.shopName;
     state.connectionError=null;
