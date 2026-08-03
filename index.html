@@ -54,6 +54,8 @@ input,select,textarea{font-family:inherit;}
 .shop-name-input{font-family:'Readex Pro',sans-serif;font-size:14.5px;font-weight:600;color:var(--espresso);background:var(--paper);border:1.5px solid var(--brass);border-radius:999px;padding:4px 14px;text-align:center;max-width:80vw;}
 .tagline{color:var(--espresso);opacity:0.55;font-size:13px;margin:4px 0 0;}
 .connection-banner{max-width:520px;margin:14px auto 0;background:rgba(140,31,59,0.09);color:var(--velvet-dark);border:1px solid rgba(140,31,59,0.2);border-radius:12px;padding:9px 16px;text-align:center;font-size:12.5px;}
+.reset-token-btn{margin-top:6px;background:var(--velvet);color:var(--paper);border:none;border-radius:999px;padding:6px 16px;font-size:12px;cursor:pointer;}
+.reset-token-btn:hover{background:var(--velvet-dark);}
 .token-setup{max-width:380px;margin:80px auto;text-align:center;background:var(--paper);border-radius:var(--radius-lg);padding:34px 28px;box-shadow:var(--shadow-md);}
 .token-setup svg{opacity:0.55;margin-bottom:10px;}
 .token-setup h2{font-size:20px;color:var(--velvet);margin-bottom:8px;}
@@ -328,11 +330,24 @@ const GH_API=`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/conten
 
 let currentSha=null;
 
+function sanitizeToken(token){
+  // ينظف أي مسافات أو أسطر جديدة خفية ممكن تنلصق مع الرمز عرضًا (شائع جدًا وقت النسخ من الجوال) —
+  // قيمة فيها هذي الأحرف تخلي الطلب يفشل فورًا بخطأ عام غامض بدل رسالة واضحة.
+  return (token||'').replace(/[\r\n\t\s]+/g,'').trim();
+}
+function friendlyErrorText(e){
+  const msg=(e&&e.message)?e.message:'';
+  // رسائلنا الخاصة (بالعربي، فيها "كود" أو "تعارض") نتركها كما هي، واضحة أصلاً.
+  if(/كود|تعارض/.test(msg)) return msg;
+  // أي شي ثاني (رسائل المتصفح الخام بالإنكليزي مثل "Failed to fetch" أو "Type error")
+  // غالبًا سببه رمز التوصيل نفسه (مسافة زايدة، نسخ ناقص) — رسالة عملية بدل المصطلح التقني.
+  return 'يبدو إن رمز التوصيل (Token) مو صحيح أو ناقص — جرب امسحه وألصقه من جديد بدقة';
+}
 function getGithubToken(){
-  try{ return localStorage.getItem(GH_TOKEN_STORAGE_KEY)||''; }catch(e){ return ''; }
+  try{ return sanitizeToken(localStorage.getItem(GH_TOKEN_STORAGE_KEY)||''); }catch(e){ return ''; }
 }
 function setGithubToken(token){
-  try{ localStorage.setItem(GH_TOKEN_STORAGE_KEY,token); }catch(e){}
+  try{ localStorage.setItem(GH_TOKEN_STORAGE_KEY,sanitizeToken(token)); }catch(e){}
 }
 function isGithubConfigured(){
   const t=getGithubToken();
@@ -400,7 +415,7 @@ async function loadData(){
     if(data.shopName) state.shopName=data.shopName;
     state.connectionError=null;
   }catch(e){
-    state.connectionError='تعذر الاتصال بقاعدة البيانات — '+(e&&e.message?e.message:'خطأ غير معروف');
+    state.connectionError='تعذر الاتصال بقاعدة البيانات — '+friendlyErrorText(e);
   }
   state.loading=false;
   render();
@@ -418,7 +433,7 @@ async function persistOrder(order){
     state.orders=updated.orders;
     state.connectionError=null;
     render();
-  }catch(e){ state.connectionError='تعذر حفظ الطلب — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
+  }catch(e){ state.connectionError='تعذر حفظ الطلب — '+friendlyErrorText(e); render(); }
 }
 async function persistDeleteOrder(id){
   if(!isGithubConfigured()){ state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب'; render(); return; }
@@ -430,7 +445,7 @@ async function persistDeleteOrder(id){
     state.orders=updated.orders;
     state.connectionError=null;
     render();
-  }catch(e){ state.connectionError='تعذر حذف الطلب — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
+  }catch(e){ state.connectionError='تعذر حذف الطلب — '+friendlyErrorText(e); render(); }
 }
 async function persistSettings(){
   if(!isGithubConfigured()){ state.connectionError='لم يتم إعداد رمز گيتهاب بعد — راجع تعليمات التركيب'; render(); return; }
@@ -439,7 +454,7 @@ async function persistSettings(){
       return {shopName:state.shopName,orders:current.orders||[]};
     });
     state.connectionError=null;
-  }catch(e){ state.connectionError='تعذر حفظ الإعدادات — '+(e&&e.message?e.message:'خطأ غير معروف'); render(); }
+  }catch(e){ state.connectionError='تعذر حفظ الإعدادات — '+friendlyErrorText(e); render(); }
 }
 let pollTimer=null;
 function startPolling(){
@@ -818,7 +833,10 @@ function renderAccountsView(){
 }
 function renderConnectionBanner(){
   if(!state.connectionError) return '';
-  return `<div class="connection-banner">${escapeHtml(state.connectionError)}</div>`;
+  return `<div class="connection-banner">
+    <div>${escapeHtml(state.connectionError)}</div>
+    <button type="button" class="reset-token-btn" data-action="reset-token">مسح الرمز وإعادة المحاولة</button>
+  </div>`;
 }
 function renderTokenSetup(){
   return `<div class="token-setup">
@@ -897,6 +915,13 @@ appEl.addEventListener('click',function(e){
         render();
         loadData();
       }
+      break;
+    }
+    case 'reset-token': {
+      setGithubToken('');
+      state.connectionError=null;
+      state.orders=[];
+      render();
       break;
     }
   }
