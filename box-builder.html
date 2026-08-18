@@ -146,11 +146,17 @@
   .cart-del{background:none;border:none;color:var(--espresso-soft);font-size:18px;line-height:1;cursor:pointer;padding:4px 6px;flex-shrink:0;}
   .cart-del:active{color:#B23A3A;}
 
+  .qty-add-row{display:flex;gap:8px;margin-bottom:10px;}
+  .qty-stepper{display:flex;align-items:stretch;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.55);}
+  .qty-stepper button{background:none;border:none;width:38px;font-size:18px;font-weight:700;color:var(--brass-deep);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+  .qty-stepper button:active{background:rgba(181,137,60,.14);}
+  .qty-value{min-width:28px;display:flex;align-items:center;justify-content:center;font-family:var(--body);font-weight:700;font-size:15px;color:var(--espresso);}
+
   .add-box-btn{
-    width:100%;padding:11px 8px;border-radius:11px;
+    flex:1;padding:11px 8px;border-radius:11px;
     border:1.5px dashed var(--brass);background:rgba(181,137,60,.07);
     color:var(--brass-deep);font-family:var(--arabic);font-weight:700;font-size:13.5px;
-    cursor:pointer;margin-bottom:10px;min-height:44px;
+    cursor:pointer;min-height:44px;
   }
   .add-box-btn:active{opacity:.75;}
 
@@ -261,7 +267,11 @@
     .cart-num{width:14px;height:14px;font-size:8px;}
     .cart-del{font-size:12px;padding:2px 3px;}
 
-    .add-box-btn{padding:5.5px 6px;font-size:9.5px;border-radius:8px;margin-bottom:6px;min-height:0;}
+    .qty-add-row{gap:5px;margin-bottom:6px;}
+    .qty-stepper{border-radius:8px;}
+    .qty-stepper button{width:20px;font-size:12px;}
+    .qty-value{min-width:16px;font-size:10px;}
+    .add-box-btn{padding:5.5px 6px;font-size:9.5px;border-radius:8px;min-height:0;}
 
     .price-row{font-size:10px;padding:2px 0;}
     .price-total{font-size:14px;padding-top:4px;margin-top:2px;}
@@ -317,7 +327,26 @@
       <div id="customInputs"></div>
 
       <div class="cart-list" id="cartList" hidden></div>
-      <button type="button" class="add-box-btn" onclick="CanCakeBuilder.addAnotherBox()">+ أضف بوكس آخر</button>
+
+      <div class="qty-add-row">
+        <div class="qty-stepper">
+          <button type="button" onclick="CanCakeBuilder.decQty()" aria-label="تقليل الكمية">−</button>
+          <span class="qty-value" id="qtyValue">1</span>
+          <button type="button" onclick="CanCakeBuilder.incQty()" aria-label="زيادة الكمية">+</button>
+        </div>
+        <button type="button" class="add-box-btn" onclick="CanCakeBuilder.addAnotherBox()">+ أضف بوكس آخر</button>
+      </div>
+
+      <div class="addr-row">
+        <div class="addr-field">
+          <label for="nameInput">الاسم</label>
+          <input type="text" id="nameInput" placeholder="اسمك" oninput="CanCakeBuilder.onNameInput(this.value)">
+        </div>
+        <div class="addr-field">
+          <label for="phoneInput">رقم الهاتف</label>
+          <input type="tel" id="phoneInput" placeholder="07xxxxxxxxx" oninput="CanCakeBuilder.onPhoneInput(this.value)">
+        </div>
+      </div>
 
       <div class="addr-row">
         <div class="addr-field">
@@ -403,6 +432,9 @@
     customs: {card:false, printing:false},
     cardMsg: '',
     printText: '',
+    qty: 1,
+    customerName: '',
+    customerPhone: '',
     address: '',
     deliveryDate: '',
     cart: []
@@ -437,22 +469,36 @@
     var a = findAddon(box.addon);
     if(a) sub += a.price;
     customs.forEach(function(c){ if(box.customs && box.customs[c.id]) sub += c.price; });
-    return sub;
+    return sub * (box.qty || 1);
   }
   function cartSubtotal(){
     var sum = 0;
     state.cart.forEach(function(box){ sum += boxSubtotal(box); });
     return sum;
   }
-  function hasValidOrder(){
+  function hasBoxes(){
     return state.cart.length > 0 || !!(state.flavor && state.addon);
+  }
+  function totalBoxCount(){
+    var count = 0;
+    state.cart.forEach(function(box){ count += (box.qty || 1); });
+    if(state.flavor && state.addon) count += (state.qty || 1);
+    return count;
+  }
+  function getMissingFields(){
+    var missing = [];
+    if(!hasBoxes()) missing.push('نكهة وإضافة');
+    if(!state.customerName) missing.push('الاسم');
+    if(!state.customerPhone) missing.push('رقم الهاتف');
+    if(!state.address) missing.push('العنوان');
+    return missing;
   }
 
   function computeTotal(){
     var total = DELIVERY_COST;
     total += cartSubtotal();
     if(state.addon){
-      total += boxSubtotal({addon: state.addon, customs: state.customs});
+      total += boxSubtotal({addon: state.addon, customs: state.customs, qty: state.qty});
     }
     return total;
   }
@@ -529,7 +575,7 @@
     var caption = $('boxCaption');
     if(!f && !a) caption.innerHTML = '<em>Start with 1 CanCake</em>';
     else if(f && !a) caption.innerHTML = '<em>' + f.ar + ' — اختر إضافتك</em>';
-    else caption.innerHTML = '<em>' + f.ar + ' + ' + a.name + '</em>';
+    else caption.innerHTML = '<em>' + f.ar + ' + ' + a.name + (state.qty>1 ? ' × ' + state.qty : '') + '</em>';
   }
 
   function renderCart(){
@@ -543,7 +589,8 @@
     el.innerHTML = state.cart.map(function(box, idx){
       var f = findFlavor(box.flavor);
       var a = findAddon(box.addon);
-      var label = (f?f.ar:'') + ' + ' + (a?a.name:'');
+      var qty = box.qty || 1;
+      var label = (qty>1 ? qty + '× ' : '') + (f?f.ar:'') + ' + ' + (a?a.name:'');
       return '<div class="cart-row"><span class="cart-num">' + (idx+1) + '</span>' +
         '<span class="cart-label">' + label + '</span>' +
         '<span class="cart-price">' + fmt(boxSubtotal(box)) + '</span>' +
@@ -554,24 +601,35 @@
 
   function renderPriceBox(){
     var a = findAddon(state.addon);
+    var qty = state.qty || 1;
     var chosenCustoms = customs.filter(function(c){ return state.customs[c.id]; });
+    var boxCount = totalBoxCount();
 
     var html = '';
     if(state.cart.length > 0){
       html += '<div class="price-row"><span>' + state.cart.length + ' بوكس مضاف مسبقًا</span><b>' + fmt(cartSubtotal()) + '</b></div>';
     }
     if(a){
-      html += '<div class="price-row"><span>البوكس الحالي — ' + a.name + '</span><b>' + fmt(a.price) + '</b></div>';
+      var qtyTag = qty>1 ? (' ×' + qty) : '';
+      html += '<div class="price-row"><span>البوكس الحالي' + qtyTag + ' — ' + a.name + '</span><b>' + fmt(a.price*qty) + '</b></div>';
     } else if(state.cart.length === 0){
       html += '<div class="price-row"><span class="muted">اختر الإضافة</span></div>';
     }
     chosenCustoms.forEach(function(c){
-      html += '<div class="price-row"><span>' + c.short + '</span><b>' + fmt(c.price) + '</b></div>';
+      html += '<div class="price-row"><span>' + c.short + (qty>1?' ×'+qty:'') + '</span><b>' + fmt(c.price*qty) + '</b></div>';
     });
     html += '<div class="price-row"><span>التوصيل</span><b>' + fmt(DELIVERY_COST) + '</b></div>';
+    if(boxCount > 0){
+      html += '<div class="price-row"><span>عدد العلب</span><b>' + boxCount + '</b></div>';
+    }
     html += '<div class="price-total"><span>الإجمالي</span><span>' + fmt(computeTotal()) + '</span></div>';
 
     $('priceBox').innerHTML = html;
+  }
+
+  function updateQtyDisplay(){
+    var el = $('qtyValue');
+    if(el) el.textContent = state.qty || 1;
   }
 
   function render(){
@@ -581,6 +639,7 @@
     renderBoxStage();
     renderCart();
     renderPriceBox();
+    updateQtyDisplay();
   }
 
   /* ---------------- actions ---------------- */
@@ -593,6 +652,11 @@
   function onPrintTextInput(val){ state.printText = val; }
   function onAddressInput(val){ state.address = val; }
   function onDateInput(val){ state.deliveryDate = val; }
+  function onNameInput(val){ state.customerName = val; }
+  function onPhoneInput(val){ state.customerPhone = val; }
+
+  function incQty(){ state.qty = (state.qty||1) + 1; updateQtyDisplay(); renderPriceBox(); renderBoxStage(); }
+  function decQty(){ state.qty = Math.max(1, (state.qty||1) - 1); updateQtyDisplay(); renderPriceBox(); renderBoxStage(); }
 
   function addAnotherBox(){
     if(!state.flavor || !state.addon){ showToast('اختر النكهة والإضافة أولاً'); return; }
@@ -601,13 +665,15 @@
       addon: state.addon,
       customs: {card: state.customs.card, printing: state.customs.printing},
       cardMsg: state.cardMsg,
-      printText: state.printText
+      printText: state.printText,
+      qty: state.qty || 1
     });
     state.flavor = null;
     state.addon = null;
     state.customs = {card:false, printing:false};
     state.cardMsg = '';
     state.printText = '';
+    state.qty = 1;
     render();
     showToast('أُضيف البوكس ✓ — كوّن البوكس التالي');
   }
@@ -618,8 +684,10 @@
   }
 
   function resetAll(){
-    state = {flavor:null, addon:null, customs:{card:false, printing:false}, cardMsg:'', printText:'', address:'', deliveryDate:'', cart:[]};
+    state = {flavor:null, addon:null, customs:{card:false, printing:false}, cardMsg:'', printText:'', qty:1, customerName:'', customerPhone:'', address:'', deliveryDate:'', cart:[]};
     var mc = $('manualCopy'); if(mc) mc.hidden = true;
+    var nameInput = $('nameInput'); if(nameInput) nameInput.value = '';
+    var phoneInput = $('phoneInput'); if(phoneInput) phoneInput.value = '';
     var addrInput = $('addressInput'); if(addrInput) addrInput.value = '';
     var dateInput = $('dateInput'); if(dateInput) dateInput.value = '';
     render();
@@ -631,27 +699,37 @@
 
     var allBoxes = state.cart.slice();
     if(state.flavor && state.addon){
-      allBoxes.push({flavor:state.flavor, addon:state.addon, customs:state.customs, cardMsg:state.cardMsg, printText:state.printText});
+      allBoxes.push({flavor:state.flavor, addon:state.addon, customs:state.customs, cardMsg:state.cardMsg, printText:state.printText, qty:state.qty});
     }
 
     allBoxes.forEach(function(box, idx){
       var f = findFlavor(box.flavor);
       var a = findAddon(box.addon);
+      var qty = box.qty || 1;
+      var qtyTag = qty > 1 ? (' (الكمية: ' + qty + ')') : '';
       lines.push('');
-      lines.push('بوكس ' + (idx+1) + ':');
+      lines.push('بوكس ' + (idx+1) + qtyTag + ':');
       lines.push('النكهة: ' + (f ? (f.en + ' / ' + f.ar) : '—'));
-      lines.push('الإضافة: ' + (a ? (a.name + ' (' + fmt(a.price) + ')') : '—'));
+      var addonLine = 'الإضافة: ' + (a ? a.name : '—');
+      if(a) addonLine += qty>1 ? (' (' + fmt(a.price) + ' × ' + qty + ' = ' + fmt(a.price*qty) + ')') : (' (' + fmt(a.price) + ')');
+      lines.push(addonLine);
       customs.forEach(function(c){
         if(!box.customs || !box.customs[c.id]) return;
         var extra = '';
         if(c.id === 'card' && box.cardMsg) extra = ' — «' + box.cardMsg + '»';
         if(c.id === 'printing' && box.printText) extra = ' — «' + box.printText + '»';
-        lines.push(c.name + ' (' + fmt(c.price) + ')' + extra);
+        var priceTag = qty>1 ? (fmt(c.price) + ' × ' + qty + ' = ' + fmt(c.price*qty)) : fmt(c.price);
+        lines.push(c.name + ' (' + priceTag + ')' + extra);
       });
+      if(qty > 1) lines.push('مجموع هذا البوكس: ' + fmt(boxSubtotal(box)));
     });
 
     lines.push('');
+    lines.push('عدد العلب: ' + totalBoxCount());
     lines.push('التوصيل: ' + fmt(DELIVERY_COST));
+    lines.push('');
+    lines.push('اسم الزبون: ' + (state.customerName ? state.customerName : '—'));
+    lines.push('رقم الهاتف: ' + (state.customerPhone ? state.customerPhone : '—'));
     lines.push('العنوان: ' + (state.address ? state.address : '—'));
     lines.push('تاريخ التوصيل: ' + (state.deliveryDate ? formatDateDisplay(state.deliveryDate) : '—'));
     lines.push('الإجمالي: ' + fmt(computeTotal()));
@@ -695,7 +773,8 @@
   }
 
   function copySummary(){
-    if(!hasValidOrder()){ showToast('اختر النكهة والإضافة أولاً'); return; }
+    var missing = getMissingFields();
+    if(missing.length){ showToast('أكمل: ' + missing.join('، ')); return; }
     var text = buildSummaryText();
 
     function onCopyOk(){ $('manualCopy').hidden = true; showToast('تم نسخ الطلب ✓'); }
@@ -713,7 +792,8 @@
   }
 
   function shareWhatsApp(){
-    if(!hasValidOrder()){ showToast('اختر النكهة والإضافة أولاً'); return; }
+    var missing = getMissingFields();
+    if(missing.length){ showToast('أكمل: ' + missing.join('، ')); return; }
     var text = buildSummaryText();
     window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
   }
@@ -726,6 +806,10 @@
     onPrintTextInput: onPrintTextInput,
     onAddressInput: onAddressInput,
     onDateInput: onDateInput,
+    onNameInput: onNameInput,
+    onPhoneInput: onPhoneInput,
+    incQty: incQty,
+    decQty: decQty,
     addAnotherBox: addAnotherBox,
     removeCartItem: removeCartItem,
     resetAll: resetAll,
